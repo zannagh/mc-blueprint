@@ -27,6 +27,7 @@ param(
     [string]$GroupPrefix,
     [string]$Repo,
     [switch]$KeepTooling,
+    [switch]$SkipWorkflows,
     [Alias('y')]
     [switch]$Yes,
     [Alias('h')]
@@ -59,6 +60,9 @@ Options:
   -GroupPrefix <p>    Package prefix to use instead of io.github.<owner>.
   -Repo <name>        Repository name for URLs (default: the fabric/kebab id).
   -KeepTooling        Do NOT delete adjust-names.* / bootstrap workflow after.
+  -SkipWorkflows      Do NOT edit .github/workflows/ or delete bootstrap.yml.
+                      Used by the bootstrap workflow, because the automatic
+                      GITHUB_TOKEN cannot push changes to workflow files.
   -Yes                Do not prompt for confirmation.
   -Help               Show this help.
 '@ | Write-Output
@@ -234,11 +238,21 @@ $textExts = @(
 )
 $textExcludeDirs = @('.git', 'build', '.gradle', '.idea', '.kotlin', 'versions')
 
+function Test-UnderWorkflows([string]$fullPath) {
+    $rel = $fullPath
+    if ($fullPath.StartsWith($root)) {
+        $rel = $fullPath.Substring($root.Length)
+    }
+    $rel = ($rel -replace '\\', '/').TrimStart('/')
+    return $rel.StartsWith('.github/workflows/')
+}
+
 Write-Output 'Rewriting file contents ...'
 Get-ChildItem -LiteralPath $root -Recurse -File -Force | Where-Object {
     ($textExts -contains $_.Extension.ToLowerInvariant()) -and
     ($_.Name -ne 'adjust-names.sh') -and ($_.Name -ne 'adjust-names.ps1') -and
-    (-not (Test-UnderExcludedDir $_.FullName $textExcludeDirs))
+    (-not (Test-UnderExcludedDir $_.FullName $textExcludeDirs)) -and
+    (-not ($SkipWorkflows -and (Test-UnderWorkflows $_.FullName)))
 } | ForEach-Object {
     $content = [System.IO.File]::ReadAllText($_.FullName)
     $new = $content
@@ -306,7 +320,11 @@ Get-ChildItem -LiteralPath $root -Recurse -Force | Where-Object {
 # -- Remove template tooling (unless asked to keep) ---------------------------
 if (-not $KeepTooling) {
     Write-Output 'Removing template tooling ...'
-    foreach ($p in @('./adjust-names.sh', './adjust-names.ps1', '.github/workflows/bootstrap.yml')) {
+    $toRemove = @('./adjust-names.sh', './adjust-names.ps1')
+    if (-not $SkipWorkflows) {
+        $toRemove += '.github/workflows/bootstrap.yml'
+    }
+    foreach ($p in $toRemove) {
         if (Test-Path -LiteralPath $p) {
             Remove-Item -LiteralPath $p -Force
         }

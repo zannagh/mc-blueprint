@@ -26,6 +26,9 @@
 #   --group-prefix <p> Package prefix to use instead of io.github.<owner>.
 #   --repo <name>      Repository name for URLs (default: the fabric/kebab id).
 #   --keep-tooling     Do NOT delete adjust-names.* / bootstrap workflow after.
+#   --skip-workflows   Do NOT edit .github/workflows/ or delete bootstrap.yml.
+#                      Used by the bootstrap workflow, because the automatic
+#                      GITHUB_TOKEN cannot push changes to workflow files.
 #   -y, --yes          Do not prompt for confirmation.
 #   -h, --help         Show this help.
 # ──────────────────────────────────────────────────────────────────────────────
@@ -40,9 +43,9 @@ PH_KEBAB="example-mod"
 PH_SNAKE="example_mod"
 PH_OWNER="example-owner"
 
-NAME=""; OWNER=""; PACKAGE=""; GROUP_PREFIX=""; REPO=""; KEEP_TOOLING=false; ASSUME_YES=false
+NAME=""; OWNER=""; PACKAGE=""; GROUP_PREFIX=""; REPO=""; KEEP_TOOLING=false; ASSUME_YES=false; SKIP_WORKFLOWS=false
 
-usage() { sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
+usage() { sed -n '2,33p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-1}"; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -52,6 +55,7 @@ while [ $# -gt 0 ]; do
     --group-prefix) GROUP_PREFIX="${2:-}"; shift 2;;
     --repo) REPO="${2:-}"; shift 2;;
     --keep-tooling) KEEP_TOOLING=true; shift;;
+    --skip-workflows) SKIP_WORKFLOWS=true; shift;;
     -y|--yes) ASSUME_YES=true; shift;;
     -h|--help) usage 0;;
     *) echo "Unknown argument: $1" >&2; usage 1;;
@@ -146,6 +150,7 @@ find . \
     -o -name '*.accesswidener' -o -name '*.cfg' -o -name '*.txt' \) -print \
 | while IFS= read -r f; do
     case "$f" in */"$SELF"|*/adjust-names.ps1) continue;; esac
+    if [ "$SKIP_WORKFLOWS" = true ]; then case "$f" in ./.github/workflows/*) continue;; esac; fi
     sedi \
       -e "s|${PH_PACKAGE}|${PACKAGE}|g" \
       -e "s|${PH_PACKAGE_PATH}|${PACKAGE_PATH}|g" \
@@ -184,7 +189,8 @@ find . -not -path '*/build/*' -not -path '*/versions/*' -not -path '*/.git/*' -n
 # ── Remove template tooling (unless asked to keep) ────────────────────────────
 if [ "$KEEP_TOOLING" != true ]; then
   echo "Removing template tooling ..."
-  rm -f "./adjust-names.sh" "./adjust-names.ps1" ".github/workflows/bootstrap.yml"
+  rm -f "./adjust-names.sh" "./adjust-names.ps1"
+  if [ "$SKIP_WORKFLOWS" != true ]; then rm -f ".github/workflows/bootstrap.yml"; fi
 fi
 
 cat <<EOF
