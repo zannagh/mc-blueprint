@@ -51,7 +51,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "Initializing template as '$REPO_NAME' for owner '$OWNER'."
-          bash ./adjust-names.sh --name "$REPO_NAME" --owner "$OWNER" --repo "$REPO_NAME" -y
+          # --skip-workflows: the automatic GITHUB_TOKEN cannot push changes to
+          # files under .github/workflows/, so the rewrite must leave them (and
+          # this bootstrap workflow) untouched. The workflow files are already
+          # identity-free; this bootstrap becomes inert once adjust-names.sh is
+          # gone. Delete .github/workflows/bootstrap.yml yourself if you want.
+          bash ./adjust-names.sh --name "$REPO_NAME" --owner "$OWNER" --repo "$REPO_NAME" --skip-workflows -y
 
       - name: Commit and push
         if: steps.guard.outputs.run == 'true'
