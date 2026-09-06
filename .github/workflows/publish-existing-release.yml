@@ -100,7 +100,7 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download release assets
         env:
@@ -139,7 +139,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Upload prepared assets
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-assets-${{ inputs.tag }}
           path: release-assets/*.jar
@@ -165,10 +165,10 @@ jobs:
         loader: [fabric, neoforge]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download prepared assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-assets-${{ inputs.tag }}
           path: artifacts
@@ -225,10 +225,10 @@ jobs:
         loader: [fabric, neoforge]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Download prepared assets
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: release-assets-${{ inputs.tag }}
           path: artifacts

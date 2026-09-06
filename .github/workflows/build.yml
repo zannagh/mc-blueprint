@@ -30,7 +30,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Full history so any version-from-git tooling can resolve tags.
           fetch-depth: 0
@@ -51,7 +51,7 @@ jobs:
         run: ./gradlew build --stacktrace
 
       - name: Upload loader jars
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: mod-jars
           # The distributable loader jars only - exclude sources jars and the intermediate
