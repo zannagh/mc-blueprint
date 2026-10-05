@@ -15,16 +15,23 @@ repositories {
 // and validates the shipped loader metadata as plain files. Mixin classes under :common DO touch
 // Minecraft, so they are excluded from this lightweight compile. This keeps the suite fast and
 // dependency-light while still proving the core wiring is intact.
-sourceSets {
-    named("test") {
-        java {
-            srcDir(rootProject.file("common/src/main/java"))
-            exclude("**/mixin/**")
-        }
-    }
+//
+// The core is compiled by a standalone task rather than by adding common/src/main/java to the
+// test source set: a shared srcDir makes IntelliJ mark that directory as a TEST root (the smoke
+// module claims it), breaking the :common module in the IDE.
+val coreCompileClasspath by configurations.creating
+
+val compileCore by tasks.registering(JavaCompile::class) {
+    source(rootProject.fileTree("common/src/main/java") { exclude("**/mixin/**") })
+    classpath = coreCompileClasspath
+    destinationDirectory.set(layout.buildDirectory.dir("classes/java/core"))
+    javaCompiler.set(javaToolchains.compilerFor(java.toolchain))
 }
 
 dependencies {
+    coreCompileClasspath("org.slf4j:slf4j-api:2.0.16")
+    testImplementation(files(compileCore))
+
     testImplementation(platform("org.junit:junit-bom:6.0.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
